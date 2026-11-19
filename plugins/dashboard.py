@@ -171,7 +171,7 @@ def register(app):
                 buttons = await group_list(client, user_id)
                 text, markup = ("👥 Your admin groups:" if len(buttons) > 1
                                 else "No managed groups are visible.\\n\\n"
-                                     "1. Send /chatid inside the group as an admin.\\n"
+                                     "1. Send /id inside the group as an admin.\\n"
                                      "2. Send /connect CHAT_ID here in private.\\n"
                                      "3. Open My Groups again.\\n\\n"
                                      "Existing saved groups are not deleted when this list is empty."), keyboard(buttons)
