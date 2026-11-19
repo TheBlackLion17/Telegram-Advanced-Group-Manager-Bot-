@@ -170,10 +170,10 @@ def register(app):
             elif action == "groups" and len(data) == 2:
                 buttons = await group_list(client, user_id)
                 text, markup = ("👥 Your admin groups:" if len(buttons) > 1
-                                else "No managed groups are visible.\\n\\n"
-                                     "1. Send /id inside the group as an admin.\\n"
-                                     "2. Send /connect CHAT_ID here in private.\\n"
-                                     "3. Open My Groups again.\\n\\n"
+                                else "No managed groups are visible.\n\n"
+                                     "1. Send /id inside the group as an admin.\n"
+                                     "2. Send /connect CHAT_ID here in private.\n"
+                                     "3. Open My Groups again.\n\n"
                                      "Existing saved groups are not deleted when this list is empty."), keyboard(buttons)
             elif action == "info" and len(data) == 3 and data[2] in INFO:
                 text, markup = INFO[data[2]], keyboard([[InlineKeyboardButton("⬅️ Home", callback_data="gm:home")]])
