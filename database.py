@@ -22,6 +22,11 @@ async def execute(sql,args=()):
   async with conn.cursor() as cur:
    await cur.execute(sql,args)
    return cur.lastrowid
+async def execute_rowcount(sql,args=()):
+ async with pool.acquire() as conn:
+  async with conn.cursor() as cur:
+   await cur.execute(sql,args)
+   return cur.rowcount
 async def one(sql,args=()):
  async with pool.acquire() as conn:
   async with conn.cursor(aiomysql.DictCursor) as cur:
