@@ -35,6 +35,59 @@ def register(app):
  @app.on_message(filters.command('help') & filters.group)
  async def help_group(c,m):
   await m.reply_text('🛡 Commands\nAdmin: /settings /setrules /setwelcome /welcome on|off /antiflood on|off /links on|off /verify on|off /badword add|del WORD /warn /unwarn /ban /unban /kick /mute /unmute /purge /schedule MINUTES text /quizadd question | option1 | option2 | option3 | option4 | correct(1-4)\nMembers: /rules /stats /referral /leaderboard /quiz')
+ @app.on_message(filters.command('settings') & filters.private)
+ async def private_settings(c,m):
+  await m.reply_text(
+   "⚙️ Group settings must be configured inside your Telegram group.\\n"
+   "Send /settings in the group, or use /connect CHAT_ID here "
+   "to recover a missing group. Send /chatid in the group to get its ID."
+  )
+
+ @app.on_message(filters.command('chatid') & filters.group)
+ async def chat_id(c,m):
+  if not await admin(c,m):return
+  await ensure_group(m.chat.id,m.chat.title or str(m.chat.id))
+  await m.reply_text(
+   f"Group ID: \\u0060{m.chat.id}\\u0060\\n"
+   "In the bot's private chat, send /connect followed by this ID."
+  )
+
+ @app.on_message(filters.command('connect') & filters.private)
+ async def connect(c,m):
+  parts=(m.text or "").split()
+  if len(parts)!=2 or not parts[1].lstrip('-').isdigit():
+   return await m.reply_text("Usage: /connect -1001234567890\\nUse /chatid inside your group to get the ID.")
+  chat_id=int(parts[1])
+  if chat_id>=0:
+   return await m.reply_text("Please provide a Telegram group or supergroup ID.")
+  try:
+   from pyrogram import enums
+   chat=await c.get_chat(chat_id)
+   if chat.type not in (enums.ChatType.GROUP,enums.ChatType.SUPERGROUP):
+    return await m.reply_text("That ID does not belong to a group.")
+   me=await c.get_me()
+   bot_member=await c.get_chat_member(chat_id,me.id)
+   if bot_member.status not in (enums.ChatMemberStatus.MEMBER,
+                               enums.ChatMemberStatus.ADMINISTRATOR,
+                               enums.ChatMemberStatus.OWNER):
+    return await m.reply_text("Bot is not a member of that group.")
+   member=await c.get_chat_member(chat_id,m.from_user.id)
+   if member.status not in (enums.ChatMemberStatus.OWNER,
+                            enums.ChatMemberStatus.ADMINISTRATOR):
+    return await m.reply_text("Only group administrators can connect this group.")
+   await ensure_group(chat_id,chat.title or str(chat_id))
+   await m.reply_text(
+    f"✅ Group registered: {chat.title or chat_id}\\n"
+    "Open /dashboard → My Groups."
+   )
+  except Exception:
+   import logging
+   logging.exception("Group connection failed for chat=%s",chat_id)
+   await m.reply_text(
+    "Unable to verify this group. Confirm the bot is still in the group "
+    "and is an administrator, then send /settings inside the group."
+   )
+
  @app.on_message(filters.command('settings') & filters.group)
  async def settings(c,m):
   if not await admin(c,m):return
