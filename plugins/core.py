@@ -34,7 +34,7 @@ def register(app):
   await m.reply_text('🛡 Advanced Group Manager\nAdd me to your group as admin with Delete, Restrict, Invite and Pin permissions.\n\nGroup commands: /help /rules /settings /stats /warn /ban /mute /referral /quiz\n\nUse the buttons below or /dashboard.',reply_markup=home())
  @app.on_message(filters.command('help') & filters.group)
  async def help_group(c,m):
-  await m.reply_text('🛡 Commands\nAdmin: /settings /setrules /setwelcome /welcome on|off /antiflood on|off /links on|off /verify on|off /badword add|del WORD /warn /unwarn /ban /unban /kick /mute /unmute /purge /schedule MINUTES text /quizadd question | option1 | option2 | option3 | option4 | correct(1-4)\nMembers: /rules /stats /referral /leaderboard /quiz')
+  await m.reply_text('🛡 Commands\nAdmin: /settings /setrules /setwelcome /setwelcomemedia /setwelcomebutton /welcome on|off /antiflood on|off /links on|off /verify on|off /badword add|del WORD /warn /unwarn /ban /unban /kick /mute /unmute /purge /schedule MINUTES text /quizadd question | option1 | option2 | option3 | option4 | correct(1-4)\nMembers: /rules /stats /referral /leaderboard /quiz')
  @app.on_message(filters.command('settings') & filters.private)
  async def private_settings(c,m):
   await m.reply_text(
@@ -116,6 +116,58 @@ def register(app):
   await ensure_group(m.chat.id,m.chat.title)
   await execute(f'UPDATE `groups` SET {field}=%s WHERE chat_id=%s',(value[:3500],m.chat.id))
   await m.reply_text('Saved')
+ @app.on_message(filters.command('setwelcomemedia') & filters.group)
+ async def set_welcome_media(c,m):
+  if not await admin(c,m):return
+  await ensure_group(m.chat.id,m.chat.title)
+  reply=m.reply_to_message
+  media=None
+  kind=None
+  if reply:
+   if reply.photo:media=reply.photo;kind="photo"
+   elif reply.animation:media=reply.animation;kind="animation"
+   elif reply.video:media=reply.video;kind="video"
+  if not media:
+   return await m.reply_text("Reply to a photo, GIF or video with /setwelcomemedia. Use /clearwelcomemedia to remove it.")
+  await execute(
+   "INSERT INTO welcome_templates(chat_id,media_file_id,media_type) VALUES(%s,%s,%s) "
+   "ON DUPLICATE KEY UPDATE media_file_id=VALUES(media_file_id),media_type=VALUES(media_type)",
+   (m.chat.id,media.file_id,kind)
+  )
+  await m.reply_text("✅ Welcome media saved.")
+
+ @app.on_message(filters.command('clearwelcomemedia') & filters.group)
+ async def clear_welcome_media(c,m):
+  if not await admin(c,m):return
+  await execute("UPDATE welcome_templates SET media_file_id=NULL,media_type=NULL WHERE chat_id=%s",(m.chat.id,))
+  await m.reply_text("Welcome media removed.")
+
+ @app.on_message(filters.command('setwelcomebutton') & filters.group)
+ async def set_welcome_button(c,m):
+  if not await admin(c,m):return
+  from urllib.parse import urlparse
+  raw=(m.text or "").partition(" ")[2]
+  parts=[p.strip() for p in raw.split("|",1)]
+  if len(parts)!=2 or not (1<=len(parts[0])<=64):
+   return await m.reply_text("Usage: /setwelcomebutton SUPPORT | https://t.me/yourchannel")
+  url=parts[1]
+  parsed=urlparse(url)
+  if parsed.scheme not in ("https","http") or not parsed.netloc or len(url)>512:
+   return await m.reply_text("Please provide a valid http(s) URL.")
+  await ensure_group(m.chat.id,m.chat.title)
+  await execute(
+   "INSERT INTO welcome_templates(chat_id,button_text,button_url) VALUES(%s,%s,%s) "
+   "ON DUPLICATE KEY UPDATE button_text=VALUES(button_text),button_url=VALUES(button_url)",
+   (m.chat.id,parts[0],url)
+  )
+  await m.reply_text("✅ Welcome button saved.")
+
+ @app.on_message(filters.command('clearwelcomebutton') & filters.group)
+ async def clear_welcome_button(c,m):
+  if not await admin(c,m):return
+  await execute("UPDATE welcome_templates SET button_text=NULL,button_url=NULL WHERE chat_id=%s",(m.chat.id,))
+  await m.reply_text("Welcome button removed.")
+
  @app.on_message(filters.command('rules') & filters.group)
  async def rules(c,m):
   r=await one('SELECT rules FROM `groups` WHERE chat_id=%s',(m.chat.id,))
