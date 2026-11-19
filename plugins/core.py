@@ -1,7 +1,7 @@
 from pyrogram import filters
 from plugins.dashboard import home
 from database import ensure_group,one,execute,all
-from utils import admin,log
+from utils import admin,log,live_group_admin,telegram_api
 def register(app):
  @app.on_message(filters.group, group=-1)
  async def remember_group(c,m):
@@ -66,37 +66,27 @@ def register(app):
   if chat_id>=0:
    return await m.reply_text("Please provide a Telegram group or supergroup ID.")
   try:
-   from pyrogram import enums
-   chat=await c.get_chat(chat_id)
-   if chat.type not in (enums.ChatType.GROUP,enums.ChatType.SUPERGROUP):
+   chat=await telegram_api("getChat",chat_id=chat_id)
+   if chat.get("type") not in ("group","supergroup"):
     return await m.reply_text("That ID does not belong to a group.")
    me=await c.get_me()
-   bot_member=await c.get_chat_member(chat_id,me.id)
-   if bot_member.status not in (enums.ChatMemberStatus.MEMBER,
-                               enums.ChatMemberStatus.ADMINISTRATOR,
-                               enums.ChatMemberStatus.OWNER):
+   bot_member=await telegram_api("getChatMember",chat_id=chat_id,user_id=me.id)
+   if bot_member.get("status") not in ("member","administrator","creator"):
     return await m.reply_text("Bot is not a member of that group.")
-   member=await c.get_chat_member(chat_id,m.from_user.id)
-   if member.status not in (enums.ChatMemberStatus.OWNER,
-                            enums.ChatMemberStatus.ADMINISTRATOR):
+   if not await live_group_admin(c,chat_id,m.from_user.id):
     return await m.reply_text("Only group administrators can connect this group.")
-   await ensure_group(chat_id,chat.title or str(chat_id))
+   title=chat.get("title") or str(chat_id)
+   await ensure_group(chat_id,title)
    await execute(
     "INSERT INTO group_admin_links(chat_id,user_id) VALUES(%s,%s) "
     "ON DUPLICATE KEY UPDATE verified_at=CURRENT_TIMESTAMP",
     (chat_id,m.from_user.id)
    )
-   await m.reply_text(
-    f"✅ Group registered: {chat.title or chat_id}\n"
-    "Open /dashboard → My Groups."
-   )
+   await m.reply_text(f"✅ Group registered: {title}\nOpen /dashboard → My Groups.")
   except Exception:
    import logging
    logging.exception("Group connection failed for chat=%s",chat_id)
-   await m.reply_text(
-    "Unable to verify this group. Confirm the bot is still in the group "
-    "and is an administrator, then send /settings inside the group."
-   )
+   await m.reply_text("Unable to verify this group. Check that the bot is still an administrator.")
 
  @app.on_message(filters.command('settings') & filters.group)
  async def settings(c,m):
