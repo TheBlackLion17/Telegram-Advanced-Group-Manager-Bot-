@@ -1,4 +1,4 @@
-import asyncio,re,time
+import asyncio,re,time,logging
 from collections import defaultdict,deque
 from pyrogram import filters,enums
 from pyrogram.types import ChatPermissions
@@ -61,7 +61,7 @@ def register(app):
   if not m.from_user or m.from_user.is_bot or await admin(c,m):return
   if m.text and m.text.startswith('/'):return
   await ensure_group(m.chat.id,m.chat.title)
-  r=await one('SELECT * FROM groups WHERE chat_id=%s',(m.chat.id,))
+  r=await one('SELECT * FROM `groups` WHERE chat_id=%s',(m.chat.id,))
   text=(m.text or m.caption or '').lower()
   blocked=False;reason=''
   if r['links_blocked'] and re.search(r'(https?://|www\.|t\.me/)',text):blocked=True;reason='link'
@@ -77,5 +77,6 @@ def register(app):
    try:
     await m.delete();n=await warn_user(c,m.chat.id,m.from_user.id,reason)
     await c.send_message(m.chat.id,f'⚠️ User {m.from_user.id}: {reason}. Warning {n}/3.')
-   except Exception:pass
+   except Exception:
+    logging.exception('Failed to moderate chat=%s user=%s',m.chat.id,m.from_user.id)
   else:await log(c,m.chat.id,m.from_user.id,'message')
