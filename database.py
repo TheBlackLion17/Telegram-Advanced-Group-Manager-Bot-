@@ -2,7 +2,7 @@ import aiomysql
 from config import DB
 pool=None
 SCHEMA=[
-"""CREATE TABLE IF NOT EXISTS groups (chat_id BIGINT PRIMARY KEY,title VARCHAR(255),welcome_enabled BOOLEAN NOT NULL DEFAULT TRUE,antiflood_enabled BOOLEAN NOT NULL DEFAULT TRUE,links_blocked BOOLEAN NOT NULL DEFAULT FALSE,verify_enabled BOOLEAN NOT NULL DEFAULT FALSE, rules TEXT, welcome_text TEXT, flood_limit INT NOT NULL DEFAULT 6, flood_window INT NOT NULL DEFAULT 8) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4""",
+"""CREATE TABLE IF NOT EXISTS `groups` (chat_id BIGINT PRIMARY KEY,title VARCHAR(255),welcome_enabled BOOLEAN NOT NULL DEFAULT TRUE,antiflood_enabled BOOLEAN NOT NULL DEFAULT TRUE,links_blocked BOOLEAN NOT NULL DEFAULT FALSE,verify_enabled BOOLEAN NOT NULL DEFAULT FALSE, rules TEXT, welcome_text TEXT, flood_limit INT NOT NULL DEFAULT 6, flood_window INT NOT NULL DEFAULT 8) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4""",
 """CREATE TABLE IF NOT EXISTS members (chat_id BIGINT NOT NULL,user_id BIGINT NOT NULL,first_name VARCHAR(255),username VARCHAR(255),joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,active BOOLEAN NOT NULL DEFAULT TRUE,invited_by BIGINT NULL,verified BOOLEAN NOT NULL DEFAULT TRUE,PRIMARY KEY(chat_id,user_id),INDEX idx_ref(chat_id,invited_by)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4""",
 """CREATE TABLE IF NOT EXISTS warnings (chat_id BIGINT NOT NULL,user_id BIGINT NOT NULL,count INT NOT NULL DEFAULT 0,PRIMARY KEY(chat_id,user_id)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4""",
 """CREATE TABLE IF NOT EXISTS banned_words (chat_id BIGINT NOT NULL,word VARCHAR(100) NOT NULL,PRIMARY KEY(chat_id,word)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4""",
@@ -33,4 +33,4 @@ async def all(sql,args=()):
 async def event(chat,user,kind):
  await execute('INSERT INTO events(chat_id,user_id,event_type) VALUES(%s,%s,%s)',(chat,user,kind))
 async def ensure_group(chat,title):
- await execute('INSERT INTO groups(chat_id,title) VALUES(%s,%s) ON DUPLICATE KEY UPDATE title=VALUES(title)',(chat,title))
+ await execute('INSERT INTO `groups`(chat_id,title) VALUES(%s,%s) ON DUPLICATE KEY UPDATE title=VALUES(title)',(chat,title))
