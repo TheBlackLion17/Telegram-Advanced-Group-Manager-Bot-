@@ -1,0 +1,21 @@
+[Unit]
+Description=Telegram Advanced Group Manager
+After=network-online.target mysql.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=groupbot
+Group=groupbot
+WorkingDirectory=/opt/group-manager
+ExecStart=/opt/group-manager/venv/bin/python /opt/group-manager/bot.py
+Restart=always
+RestartSec=5
+Environment=PYTHONUNBUFFERED=1
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/opt/group-manager
+
+[Install]
+WantedBy=multi-user.target
