@@ -1,7 +1,7 @@
 import json,random,asyncio,logging
 from datetime import datetime,timedelta,timezone
 from pyrogram import filters
-from database import execute,one,all
+from database import execute,execute_rowcount,one,all
 from utils import admin
 def register(app):
  @app.on_message(filters.command('quizadd') & filters.group)
@@ -34,7 +34,7 @@ async def scheduler(app):
   try:
    rows=await all("SELECT * FROM scheduled_posts WHERE status='pending' AND send_at<=UTC_TIMESTAMP() ORDER BY id LIMIT 20")
    for r in rows:
-    claimed=await execute("UPDATE scheduled_posts SET status='sending' WHERE id=%s AND status='pending'",(r['id'],))
+    claimed=await execute_rowcount("UPDATE scheduled_posts SET status='sending' WHERE id=%s AND status='pending'",(r['id'],))
     if not claimed:continue
     try:
      await app.send_message(r['chat_id'],r['body'])
