@@ -34,14 +34,31 @@ async def is_group_admin(client, chat_id, user_id):
         return False
 
 async def group_list(client, user_id):
-    # A group is shown only after Telegram confirms this user is an administrator.
-    rows = await all("SELECT chat_id,title FROM `groups` ORDER BY title LIMIT 100")
+    # Show previously verified groups even if Telegram's peer cache is cold
+    # after a restart. Management actions still require live admin checks.
+    rows = await all(
+        "SELECT g.chat_id,g.title, "
+        "CASE WHEN a.user_id IS NULL THEN 0 ELSE 1 END AS remembered "
+        "FROM `groups` g LEFT JOIN group_admin_links a "
+        "ON a.chat_id=g.chat_id AND a.user_id=%s "
+        "ORDER BY g.title LIMIT 100",
+        (user_id,),
+    )
     buttons = []
     for row in rows:
-        if await is_group_admin(client, row["chat_id"], user_id):
+        verified = await is_group_admin(client, row["chat_id"], user_id)
+        if verified:
+            await execute(
+                "INSERT INTO group_admin_links(chat_id,user_id) VALUES(%s,%s) "
+                "ON DUPLICATE KEY UPDATE verified_at=CURRENT_TIMESTAMP",
+                (row["chat_id"], user_id),
+            )
+        if verified or row["remembered"]:
+            label = (row["title"] or str(row["chat_id"]))[:42]
+            if not verified:
+                label += " ⚠️"
             buttons.append([InlineKeyboardButton(
-                (row["title"] or str(row["chat_id"]))[:45],
-                callback_data=f"gm:group:{row['chat_id']}"
+                label, callback_data=f"gm:group:{row['chat_id']}"
             )])
     buttons.append([InlineKeyboardButton("⬅️ Home", callback_data="gm:home")])
     return buttons
