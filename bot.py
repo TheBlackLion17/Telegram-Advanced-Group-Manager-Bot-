@@ -2,7 +2,7 @@ import asyncio,logging
 from pyrogram import Client
 import database
 from config import API_ID,API_HASH,BOT_TOKEN
-from modules import core,moderation,members,engagement
+from plugins import core,moderation,members,engagement
 logging.basicConfig(level=logging.INFO)
 app=Client('group_manager',api_id=API_ID,api_hash=API_HASH,bot_token=BOT_TOKEN,workers=8)
 async def main():
