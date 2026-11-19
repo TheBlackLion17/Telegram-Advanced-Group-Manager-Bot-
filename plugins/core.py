@@ -40,10 +40,10 @@ def register(app):
   await m.reply_text(
    "⚙️ Group settings must be configured inside your Telegram group.\\n"
    "Send /settings in the group, or use /connect CHAT_ID here "
-   "to recover a missing group. Send /chatid in the group to get its ID."
+   "to recover a missing group. Send /id in the group to get its ID."
   )
 
- @app.on_message(filters.command('chatid') & filters.group)
+ @app.on_message(filters.command('id') & filters.group)
  async def chat_id(c,m):
   if not await admin(c,m):return
   await ensure_group(m.chat.id,m.chat.title or str(m.chat.id))
@@ -56,7 +56,7 @@ def register(app):
  async def connect(c,m):
   parts=(m.text or "").split()
   if len(parts)!=2 or not parts[1].lstrip('-').isdigit():
-   return await m.reply_text("Usage: /connect -1001234567890\\nUse /chatid inside your group to get the ID.")
+   return await m.reply_text("Usage: /connect -1001234567890\\nUse /id inside your group to get the ID.")
   chat_id=int(parts[1])
   if chat_id>=0:
    return await m.reply_text("Please provide a Telegram group or supergroup ID.")
