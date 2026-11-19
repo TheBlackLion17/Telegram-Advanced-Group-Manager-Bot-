@@ -18,7 +18,7 @@ def keyboard(rows):
 def home():
     return keyboard([
         [InlineKeyboardButton("👥 My Groups", callback_data="gm:groups")],
-        [InlineKeyboardButton("🛡 Moderation", callback_data="gm:info:moderation"),
+        [InlineKeyboardButton("🛡 Moderation", callback_data="gm:moderation"),
          InlineKeyboardButton("🎯 Quizzes", callback_data="gm:info:quizzes")],
         [InlineKeyboardButton("🔗 Referrals", callback_data="gm:info:referrals"),
          InlineKeyboardButton("📊 Analytics", callback_data="gm:info:analytics")],
@@ -51,6 +51,7 @@ async def group_menu(client, chat_id, user_id):
     return keyboard([
         [InlineKeyboardButton("⚙️ Settings", callback_data=f"gm:settings:{chat_id}"),
          InlineKeyboardButton("📊 Analytics", callback_data=f"gm:stats:{chat_id}")],
+        [InlineKeyboardButton("🛡 Moderation Panel", callback_data=f"gm:mod:{chat_id}")],
         [InlineKeyboardButton("🔗 Referrals", callback_data=f"gm:refs:{chat_id}")],
         [InlineKeyboardButton("⬅️ My Groups", callback_data="gm:groups")],
     ])
@@ -65,6 +66,46 @@ async def settings_menu(chat_id):
     )] for field, label in SETTINGS.items()]
     rows.append([InlineKeyboardButton("⬅️ Group", callback_data=f"gm:group:{chat_id}")])
     return keyboard(rows)
+
+
+async def moderation_menu(chat_id):
+    cfg = await one("SELECT * FROM `groups` WHERE chat_id=%s", (chat_id,))
+    if not cfg:
+        return None
+    controls = [
+        ("antiflood_enabled", "🛡 Anti-Flood"),
+        ("links_blocked", "🔗 Block Links"),
+        ("welcome_enabled", "👋 Welcome"),
+        ("verify_enabled", "🔐 Verification"),
+    ]
+    rows = [[InlineKeyboardButton(
+        f"{'✅' if cfg[field] else '❌'} {label}",
+        callback_data=f"gm:modtoggle:{chat_id}:{field}"
+    )] for field, label in controls]
+    rows.extend([
+        [InlineKeyboardButton("⚠️ Warnings", callback_data=f"gm:modhelp:{chat_id}:warnings"),
+         InlineKeyboardButton("🚫 Banned Words", callback_data=f"gm:modhelp:{chat_id}:words")],
+        [InlineKeyboardButton("⬅️ Group", callback_data=f"gm:group:{chat_id}")],
+    ])
+    return keyboard(rows)
+
+MOD_HELP = {
+    "warnings": (
+        "⚠️ Warning Management\n\n"
+        "Reply to a member's message in the group:\n"
+        "/warn — Add warning\n"
+        "/warnings — Check warnings\n"
+        "/unwarn — Clear warnings\n\n"
+        "At 3 warnings, the bot applies a temporary restriction."
+    ),
+    "words": (
+        "🚫 Banned Words\n\n"
+        "Use these commands in your group:\n"
+        "/badword add WORD\n"
+        "/badword del WORD\n\n"
+        "The bot checks messages against the blocked-word list."
+    ),
+}
 
 INFO = {
     "moderation": "🛡 Moderation\nIn your group: /warn, /ban, /mute, /unmute, /purge, /badword add|del WORD. Admin permissions are required.",
@@ -89,6 +130,42 @@ def register(app):
             user_id = query.from_user.id
             if action == "home" and len(data) == 2:
                 text, markup = "🛡 Group Manager Dashboard\nChoose a section:", home()
+            elif action == "moderation" and len(data) == 2:
+                buttons = await group_list(client, user_id)
+                text = "🛡 Select a group to manage moderation:"
+                markup = keyboard(buttons)
+            elif action == "mod" and len(data) == 3:
+                chat_id = int(data[2])
+                if not await is_group_admin(client, chat_id, user_id):
+                    return await query.answer("Administrator access required.", show_alert=True)
+                markup = await moderation_menu(chat_id)
+                text = "🛡 Moderation Panel\nTap to enable or disable protection."
+                if markup is None:
+                    return await query.answer("Group not registered.", show_alert=True)
+            elif action == "modtoggle" and len(data) == 4:
+                chat_id = int(data[2])
+                field = data[3]
+                if not await is_group_admin(client, chat_id, user_id):
+                    return await query.answer("Administrator access required.", show_alert=True)
+                if field not in SETTINGS:
+                    return await query.answer("Invalid setting.", show_alert=True)
+                await execute(
+                    f"UPDATE `groups` SET {field}=NOT {field} WHERE chat_id=%s",
+                    (chat_id,)
+                )
+                markup = await moderation_menu(chat_id)
+                text = "🛡 Moderation Panel\nSettings updated."
+            elif action == "modhelp" and len(data) == 4:
+                chat_id = int(data[2])
+                topic = data[3]
+                if not await is_group_admin(client, chat_id, user_id):
+                    return await query.answer("Administrator access required.", show_alert=True)
+                if topic not in MOD_HELP:
+                    return await query.answer("Unknown option.")
+                text = MOD_HELP[topic]
+                markup = keyboard([[
+                    InlineKeyboardButton("⬅️ Moderation", callback_data=f"gm:mod:{chat_id}")
+                ]])
             elif action == "groups" and len(data) == 2:
                 buttons = await group_list(client, user_id)
                 text, markup = ("👥 Your admin groups:" if len(buttons) > 1
