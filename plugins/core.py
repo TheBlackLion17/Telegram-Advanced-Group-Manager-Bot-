@@ -47,6 +47,11 @@ def register(app):
  async def chat_id(c,m):
   if not await admin(c,m):return
   await ensure_group(m.chat.id,m.chat.title or str(m.chat.id))
+  await execute(
+   "INSERT INTO group_admin_links(chat_id,user_id) VALUES(%s,%s) "
+   "ON DUPLICATE KEY UPDATE verified_at=CURRENT_TIMESTAMP",
+   (m.chat.id,m.from_user.id)
+  )
   await m.reply_text(
    f"Group ID: \u0060{m.chat.id}\u0060\n"
    "In the bot's private chat, send /connect followed by this ID."
@@ -76,6 +81,11 @@ def register(app):
                             enums.ChatMemberStatus.ADMINISTRATOR):
     return await m.reply_text("Only group administrators can connect this group.")
    await ensure_group(chat_id,chat.title or str(chat_id))
+   await execute(
+    "INSERT INTO group_admin_links(chat_id,user_id) VALUES(%s,%s) "
+    "ON DUPLICATE KEY UPDATE verified_at=CURRENT_TIMESTAMP",
+    (chat_id,m.from_user.id)
+   )
    await m.reply_text(
     f"✅ Group registered: {chat.title or chat_id}\n"
     "Open /dashboard → My Groups."
@@ -92,6 +102,11 @@ def register(app):
  async def settings(c,m):
   if not await admin(c,m):return
   await ensure_group(m.chat.id,m.chat.title)
+  await execute(
+   "INSERT INTO group_admin_links(chat_id,user_id) VALUES(%s,%s) "
+   "ON DUPLICATE KEY UPDATE verified_at=CURRENT_TIMESTAMP",
+   (m.chat.id,m.from_user.id)
+  )
   row=await one('SELECT * FROM `groups` WHERE chat_id=%s',(m.chat.id,))
   await m.reply_text('⚙️ Settings\n'+'\n'.join(f'{k}: {row[k]}' for k in ('welcome_enabled','antiflood_enabled','links_blocked','verify_enabled','flood_limit','flood_window')))
  @app.on_message(filters.command(['welcome','antiflood','links','verify']) & filters.group)
