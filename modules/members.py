@@ -6,7 +6,7 @@ def register(app):
  @app.on_message(filters.new_chat_members & filters.group)
  async def join(c,m):
   await ensure_group(m.chat.id,m.chat.title)
-  cfg=await one('SELECT * FROM groups WHERE chat_id=%s',(m.chat.id,))
+  cfg=await one('SELECT * FROM `groups` WHERE chat_id=%s',(m.chat.id,))
   for u in m.new_chat_members:
    if u.is_bot:continue
    inviter=None
@@ -26,6 +26,9 @@ def register(app):
  async def verify(c,q):
   _,chat,user=q.data.split(':');chat=int(chat);user=int(user)
   if q.from_user.id!=user:return await q.answer('This button belongs to another member.',show_alert=True)
+  if not q.message or q.message.chat.id!=chat:return await q.answer('Invalid verification chat.',show_alert=True)
+  record=await one('SELECT verified FROM members WHERE chat_id=%s AND user_id=%s',(chat,user))
+  if not record:return await q.answer('Verification record not found.',show_alert=True)
   try:
    await c.restrict_chat_member(chat,user,ChatPermissions(can_send_messages=True,can_send_media_messages=True,can_send_other_messages=True,can_add_web_page_previews=True,can_send_polls=True,can_invite_users=True))
    await execute('UPDATE members SET verified=1 WHERE chat_id=%s AND user_id=%s',(chat,user))
