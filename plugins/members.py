@@ -1,7 +1,45 @@
+import logging
 from pyrogram import filters,enums
 from pyrogram.types import InlineKeyboardMarkup,InlineKeyboardButton,ChatPermissions
 from database import ensure_group,one,execute,all
 from utils import log,admin,until
+DEFAULT_WELCOME = (
+ "HEY, {name}! 👋\n"
+ "WELCOME TO OUR {group_name} 📺\n\n"
+ "YOU CAN FIND MOVIES / SERIES / ANIMES ETC. FROM HERE. ENJOY! 😉"
+)
+
+async def send_welcome(client, message, user, cfg):
+ chat_id=message.chat.id
+ settings=await one("SELECT * FROM welcome_templates WHERE chat_id=%s",(chat_id,))
+ template=cfg.get("welcome_text") or DEFAULT_WELCOME
+ text=(template.replace("{name}",user.first_name or "friend")
+               .replace("{group_name}",message.chat.title or "our group")
+               .replace("{user_id}",str(user.id)))
+ buttons=[]
+ if settings and settings.get("button_text") and settings.get("button_url"):
+  buttons.append([InlineKeyboardButton(settings["button_text"],url=settings["button_url"])])
+ if cfg["verify_enabled"]:
+  buttons.append([InlineKeyboardButton("✅ I am human",callback_data=f"verify:{chat_id}:{user.id}")])
+ markup=InlineKeyboardMarkup(buttons) if buttons else None
+ media_id=settings.get("media_file_id") if settings else None
+ media_type=settings.get("media_type") if settings else None
+ try:
+  if media_id and media_type=="photo":
+   await client.send_photo(chat_id,media_id,caption=text[:1024],reply_markup=markup)
+  elif media_id and media_type=="animation":
+   await client.send_animation(chat_id,media_id,caption=text[:1024],reply_markup=markup)
+  elif media_id and media_type=="video":
+   await client.send_video(chat_id,media_id,caption=text[:1024],reply_markup=markup)
+  else:
+   await client.send_message(chat_id,text[:4000],reply_markup=markup)
+ except Exception:
+  logging.exception("Welcome media failed for chat=%s; sending text",chat_id)
+  try:
+   await client.send_message(chat_id,text[:4000],reply_markup=markup)
+  except Exception:
+   logging.exception("Welcome message failed for chat=%s",chat_id)
+
 def register(app):
  @app.on_message(filters.new_chat_members & filters.group)
  async def join(c,m):
@@ -18,10 +56,11 @@ def register(app):
    if cfg['verify_enabled']:
     try:
      await c.restrict_chat_member(m.chat.id,u.id,ChatPermissions())
-     await m.reply_text(f'Welcome {u.mention}! Verify to chat:',reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton('✅ I am human',callback_data=f'verify:{m.chat.id}:{u.id}')]]))
-    except Exception:pass
-   elif cfg['welcome_enabled']:
-    await m.reply_text((cfg['welcome_text'] or '👋 Welcome to the group, {name}!').replace('{name}',u.first_name or 'friend')[:3500])
+    except Exception:
+     logging.exception("Could not restrict new member chat=%s user=%s",m.chat.id,u.id)
+   if cfg['welcome_enabled']:
+    await send_welcome(c,m,u,cfg)
+
  @app.on_callback_query(filters.regex(r'^verify:-?\d+:\d+$'))
  async def verify(c,q):
   _,chat,user=q.data.split(':');chat=int(chat);user=int(user)
