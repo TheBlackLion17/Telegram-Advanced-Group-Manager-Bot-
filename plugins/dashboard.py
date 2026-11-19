@@ -3,6 +3,7 @@ import logging
 from pyrogram import filters, enums
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from database import all, one, execute
+from utils import live_group_admin
 
 log = logging.getLogger(__name__)
 SETTINGS = {
@@ -26,12 +27,7 @@ def home():
     ])
 
 async def is_group_admin(client, chat_id, user_id):
-    try:
-        member = await client.get_chat_member(chat_id, user_id)
-        return member.status in (enums.ChatMemberStatus.OWNER, enums.ChatMemberStatus.ADMINISTRATOR)
-    except Exception:
-        log.exception("Could not verify admin for chat=%s user=%s", chat_id, user_id)
-        return False
+    return await live_group_admin(client, chat_id, user_id)
 
 async def group_list(client, user_id):
     # Show previously verified groups even if Telegram's peer cache is cold
