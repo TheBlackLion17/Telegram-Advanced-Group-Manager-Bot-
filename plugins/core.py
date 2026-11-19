@@ -3,6 +3,32 @@ from plugins.dashboard import home
 from database import ensure_group,one,execute,all
 from utils import admin,log
 def register(app):
+ @app.on_message(filters.group, group=-1)
+ async def remember_group(c,m):
+  # Re-register groups observed after a deployment, even without /settings.
+  if m.chat and m.chat.id:
+   await ensure_group(m.chat.id,m.chat.title or str(m.chat.id))
+
+ @app.on_chat_member_updated()
+ async def remember_bot_membership(c,update):
+  # Register immediately when the bot is added or promoted in a group.
+  try:
+   chat=update.chat
+   member=update.new_chat_member
+   if not chat or not member or not member.user:
+    return
+   me=await c.get_me()
+   if member.user.id!=me.id:
+    return
+   from pyrogram import enums
+   if member.status in (enums.ChatMemberStatus.MEMBER,
+                        enums.ChatMemberStatus.ADMINISTRATOR,
+                        enums.ChatMemberStatus.OWNER):
+    await ensure_group(chat.id,chat.title or str(chat.id))
+  except Exception:
+   import logging
+   logging.exception("Failed to register group from membership update")
+
  @app.on_message(filters.command(['start','help']) & filters.private)
  async def start(c,m):
   await m.reply_text('🛡 Advanced Group Manager\nAdd me to your group as admin with Delete, Restrict, Invite and Pin permissions.\n\nGroup commands: /help /rules /settings /stats /warn /ban /mute /referral /quiz\n\nUse the buttons below or /dashboard.',reply_markup=home())
