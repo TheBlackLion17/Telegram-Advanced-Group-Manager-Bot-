@@ -3,6 +3,7 @@ from pyrogram import filters,enums
 from pyrogram.types import InlineKeyboardMarkup,InlineKeyboardButton,ChatPermissions
 from database import ensure_group,one,execute,all
 from utils import log,admin,until
+from plugins.referral_wallet import credit
 DEFAULT_WELCOME = (
  "HEY, {name}! 👋\n"
  "WELCOME TO OUR {group_name} 📺\n\n"
@@ -58,7 +59,9 @@ def register(app):
      if ref and ref['creator_id']!=u.id:inviter=ref['creator_id']
     except Exception:
      logging.exception('Referral lookup failed chat=%s user=%s',m.chat.id,u.id)
-   await execute('INSERT INTO members(chat_id,user_id,first_name,username,active,invited_by,verified) VALUES(%s,%s,%s,%s,1,%s,%s) ON DUPLICATE KEY UPDATE first_name=VALUES(first_name),username=VALUES(username),active=1,invited_by=VALUES(invited_by),verified=VALUES(verified),joined_at=CURRENT_TIMESTAMP',(m.chat.id,u.id,u.first_name,u.username,inviter,not cfg['verify_enabled']))
+   await execute('INSERT INTO members(chat_id,user_id,first_name,username,active,invited_by,verified) VALUES(%s,%s,%s,%s,1,%s,%s) ON DUPLICATE KEY UPDATE first_name=VALUES(first_name),username=VALUES(username),active=1,invited_by=COALESCE(invited_by,VALUES(invited_by)),verified=VALUES(verified),joined_at=CURRENT_TIMESTAMP',(m.chat.id,u.id,u.first_name,u.username,inviter,not cfg['verify_enabled']))
+   if inviter and not cfg['verify_enabled']:
+    await credit(m.chat.id,u.id)
    await log(c,m.chat.id,u.id,'join')
    if cfg['verify_enabled']:
     try:
@@ -78,6 +81,7 @@ def register(app):
   try:
    await c.restrict_chat_member(chat,user,ChatPermissions(can_send_messages=True,can_send_media_messages=True,can_send_other_messages=True,can_add_web_page_previews=True,can_send_polls=True,can_invite_users=True))
    await execute('UPDATE members SET verified=1 WHERE chat_id=%s AND user_id=%s',(chat,user))
+   await credit(chat,user)
    await q.answer('Verified!');await q.message.edit_text('✅ Verification complete.')
   except Exception:return await q.answer('Verification failed; contact an admin.',show_alert=True)
  @app.on_message(filters.left_chat_member & filters.group)
