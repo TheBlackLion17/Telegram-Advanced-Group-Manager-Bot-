@@ -31,6 +31,9 @@ def register(app):
 
  @app.on_message(filters.command(['start','help']) & filters.private)
  async def start(c,m):
+  if m.command[0].lower()=='start':
+   from plugins.main_referral import main_group
+   if await main_group():return
   await m.reply_text('🛡 Advanced Group Manager\nAdd me to your group as admin with Delete, Restrict, Invite and Pin permissions.\n\nGroup commands: /help /rules /settings /stats /warn /ban /mute /referral /quiz\n\nUse the buttons below or /dashboard.',reply_markup=home())
  @app.on_message(filters.command('help') & filters.group)
  async def help_group(c,m):
