@@ -2,6 +2,9 @@ import aiomysql
 from config import DB
 pool=None
 SCHEMA=[
+"""CREATE TABLE IF NOT EXISTS referral_wallets (chat_id BIGINT NOT NULL,user_id BIGINT NOT NULL,earned BIGINT NOT NULL DEFAULT 0,available BIGINT NOT NULL DEFAULT 0,reserved BIGINT NOT NULL DEFAULT 0,paid BIGINT NOT NULL DEFAULT 0,PRIMARY KEY(chat_id,user_id)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4""",
+"""CREATE TABLE IF NOT EXISTS referral_credits (chat_id BIGINT NOT NULL,referred_id BIGINT NOT NULL,referrer_id BIGINT NOT NULL,amount INT NOT NULL DEFAULT 1,created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,PRIMARY KEY(chat_id,referred_id),INDEX idx_referrer(chat_id,referrer_id)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4""",
+"""CREATE TABLE IF NOT EXISTS referral_withdrawals (id BIGINT AUTO_INCREMENT PRIMARY KEY,chat_id BIGINT NOT NULL,user_id BIGINT NOT NULL,amount BIGINT NOT NULL,status VARCHAR(16) NOT NULL DEFAULT 'pending',created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,reviewed_by BIGINT NULL,reviewed_at DATETIME NULL,INDEX idx_withdrawals(chat_id,status,id),INDEX idx_withdraw_user(chat_id,user_id)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4""",
 """CREATE TABLE IF NOT EXISTS security_settings (chat_id BIGINT PRIMARY KEY,duplicate_enabled BOOLEAN NOT NULL DEFAULT FALSE,newcomer_links_enabled BOOLEAN NOT NULL DEFAULT FALSE,raid_enabled BOOLEAN NOT NULL DEFAULT FALSE) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4""",
 """CREATE TABLE IF NOT EXISTS member_activity (chat_id BIGINT NOT NULL,user_id BIGINT NOT NULL,message_count BIGINT NOT NULL DEFAULT 0,last_seen DATETIME NOT NULL,PRIMARY KEY(chat_id,user_id),INDEX idx_member_activity_chat_last(chat_id,last_seen),INDEX idx_member_activity_chat_count(chat_id,message_count)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4""",
 """CREATE TABLE IF NOT EXISTS welcome_templates (chat_id BIGINT PRIMARY KEY,media_file_id TEXT NULL,media_type VARCHAR(16) NULL,button_text VARCHAR(64) NULL,button_url VARCHAR(512) NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4""",
