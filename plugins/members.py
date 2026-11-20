@@ -96,9 +96,9 @@ def register(app):
   try:
    link=await c.create_chat_invite_link(m.chat.id,name=f'ref-{m.from_user.id}',creates_join_request=False)
    await execute('INSERT INTO invite_links(chat_id,invite_link,creator_id) VALUES(%s,%s,%s) ON DUPLICATE KEY UPDATE creator_id=VALUES(creator_id)',(m.chat.id,link.invite_link,m.from_user.id))
-   await m.reply_text(f'🔗 Your referral link:\n{link.invite_link}')
+   await m.reply_text(f'🔗 Your referral link:\n{link.invite_link}\n\n💰 Earn ₹1 per verified, uniquely tracked referral.\nMinimum manual withdrawal: ₹100.\nUse /balance and /withdraw 100.')
   except Exception as e:await m.reply_text('Bot needs invite-link admin permission: '+str(e)[:200])
  @app.on_message(filters.command('leaderboard') & filters.group)
  async def leaderboard(c,m):
-  rows=await all('SELECT invited_by,COUNT(*) n FROM members WHERE chat_id=%s AND active=1 AND invited_by IS NOT NULL GROUP BY invited_by ORDER BY n DESC LIMIT 10',(m.chat.id,))
-  await m.reply_text('🏆 Referral leaderboard (tracked active joins)\n'+'\n'.join(f"{i}. {r['invited_by']} — {r['n']}" for i,r in enumerate(rows,1)) if rows else 'No tracked referrals yet.')
+  rows=await all('SELECT referrer_id AS invited_by,COUNT(*) n FROM referral_credits WHERE chat_id=%s GROUP BY referrer_id ORDER BY n DESC LIMIT 10',(m.chat.id,))
+  await m.reply_text('🏆 Referral leaderboard (credited verified joins)\n'+'\n'.join(f"{i}. {r['invited_by']} — {r['n']}" for i,r in enumerate(rows,1)) if rows else 'No tracked referrals yet.')
