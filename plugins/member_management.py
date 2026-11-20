@@ -106,7 +106,7 @@ def register(app):
             return
         await message.reply_text(await report(message.chat.id,"history"))
 
-    @app.on_callback_query(filters.regex(r"^mm:(overview|new|top|inactive|warnings|history):-?\\d+$"))
+    @app.on_callback_query(filters.regex(r"^mm:(overview|new|top|inactive|warnings|history):-?\d+$"))
     async def callback(client,query):
         if not query.from_user or not query.message or query.message.chat.type!=enums.ChatType.PRIVATE:
             return await query.answer("Use the private admin dashboard.",show_alert=True)
