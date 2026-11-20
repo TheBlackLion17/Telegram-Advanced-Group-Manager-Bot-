@@ -2,6 +2,7 @@ import aiomysql
 from config import DB
 pool=None
 SCHEMA=[
+"""CREATE TABLE IF NOT EXISTS member_activity (chat_id BIGINT NOT NULL,user_id BIGINT NOT NULL,message_count BIGINT NOT NULL DEFAULT 0,last_seen DATETIME NOT NULL,PRIMARY KEY(chat_id,user_id),INDEX idx_member_activity_chat_last(chat_id,last_seen),INDEX idx_member_activity_chat_count(chat_id,message_count)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4""",
 """CREATE TABLE IF NOT EXISTS welcome_templates (chat_id BIGINT PRIMARY KEY,media_file_id TEXT NULL,media_type VARCHAR(16) NULL,button_text VARCHAR(64) NULL,button_url VARCHAR(512) NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4""",
 """CREATE TABLE IF NOT EXISTS group_admin_links (chat_id BIGINT NOT NULL,user_id BIGINT NOT NULL,verified_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,PRIMARY KEY(chat_id,user_id),INDEX idx_admin_user(user_id)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4""",
 """CREATE TABLE IF NOT EXISTS `groups` (chat_id BIGINT PRIMARY KEY,title VARCHAR(255),welcome_enabled BOOLEAN NOT NULL DEFAULT TRUE,antiflood_enabled BOOLEAN NOT NULL DEFAULT TRUE,links_blocked BOOLEAN NOT NULL DEFAULT FALSE,verify_enabled BOOLEAN NOT NULL DEFAULT FALSE, rules TEXT, welcome_text TEXT, flood_limit INT NOT NULL DEFAULT 6, flood_window INT NOT NULL DEFAULT 8) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4""",
