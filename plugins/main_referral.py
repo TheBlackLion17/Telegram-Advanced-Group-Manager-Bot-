@@ -4,7 +4,11 @@ from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from database import one, execute, ensure_group
 from config import OWNER_ID
 from plugins.referral_wallet import wallet, wallet_text, withdraw
-from utils import live_group_admin
+from utils import live_group_admin, telegram_api
+import logging
+import re
+
+logger = logging.getLogger(__name__)
 
 async def main_group():
     return await one("SELECT chat_id,title,join_url FROM referral_main_group WHERE slot=1")
@@ -55,6 +59,43 @@ def register(app):
             "ON DUPLICATE KEY UPDATE chat_id=VALUES(chat_id),title=VALUES(title),join_url=VALUES(join_url)",
             (message.chat.id,message.chat.title,join_url))
         await message.reply_text("✅ Default referral group saved. New private /start messages will use this group.")
+
+    @app.on_message(filters.command("setmaingroup") & filters.private)
+    async def set_main_private(client,message):
+        if not message.from_user or message.from_user.id!=OWNER_ID:
+            return await message.reply_text("Only the configured bot owner can set the main referral group.")
+        args=(message.text or "").split(maxsplit=1)
+        if len(args)!=2:
+            return await message.reply_text("Usage: /setmaingroup https://t.me/Movies_Hub_OG")
+        url=args[1].strip().rstrip("/")
+        match=re.fullmatch(r"https://(?:t\\.me|telegram\\.me)/([A-Za-z][A-Za-z0-9_]{4,31})",url,re.I)
+        if not match:
+            return await message.reply_text("Send a public Telegram group URL, for example: /setmaingroup https://t.me/Movies_Hub_OG")
+        username="@"+match.group(1)
+        try:
+            chat=await telegram_api("getChat",chat_id=username)
+            if chat.get("type") not in ("group","supergroup"):
+                return await message.reply_text("That link does not point to a Telegram group.")
+            chat_id=int(chat["id"])
+            owner=await telegram_api("getChatMember",chat_id=chat_id,user_id=OWNER_ID)
+            if owner.get("status") not in ("administrator","creator"):
+                return await message.reply_text("You must be an administrator of this group.")
+            me=await client.get_me()
+            bot=await telegram_api("getChatMember",chat_id=chat_id,user_id=me.id)
+            if bot.get("status")!="administrator" or not bot.get("can_invite_users",False):
+                return await message.reply_text("Make the bot a group administrator with Invite Users permission.")
+            title=chat.get("title") or username
+            await ensure_group(chat_id,title)
+            await execute(
+                "INSERT INTO referral_main_group(slot,chat_id,title,join_url) VALUES(1,%s,%s,%s) "
+                "ON DUPLICATE KEY UPDATE chat_id=VALUES(chat_id),title=VALUES(title),join_url=VALUES(join_url)",
+                (chat_id,title,url))
+            await message.reply_text(
+                f"✅ Default referral group saved: {title}\\n"
+                f"Group ID: {chat_id}\\nSend /start to open your referral menu.")
+        except Exception:
+            logger.exception("Unable to configure main referral group from private chat")
+            await message.reply_text("Unable to verify the group. Confirm the group URL and bot permissions, then try again.")
 
     @app.on_message(filters.command("clearmaingroup") & filters.private)
     async def clear_main(client,message):
