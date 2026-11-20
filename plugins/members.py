@@ -48,9 +48,16 @@ def register(app):
   for u in m.new_chat_members:
    if u.is_bot:continue
    inviter=None
-   if m.invite_link:
-    ref=await one('SELECT creator_id FROM invite_links WHERE chat_id=%s AND invite_link=%s',(m.chat.id,m.invite_link.invite_link))
-    if ref and ref['creator_id']!=u.id:inviter=ref['creator_id']
+   # Pyrogram 2.0.x join service messages may not expose invite_link.
+   # Never let optional referral metadata prevent member registration or welcome.
+   invite=getattr(m,'invite_link',None)
+   invite_url=getattr(invite,'invite_link',None) if invite else None
+   if invite_url:
+    try:
+     ref=await one('SELECT creator_id FROM invite_links WHERE chat_id=%s AND invite_link=%s',(m.chat.id,invite_url))
+     if ref and ref['creator_id']!=u.id:inviter=ref['creator_id']
+    except Exception:
+     logging.exception('Referral lookup failed chat=%s user=%s',m.chat.id,u.id)
    await execute('INSERT INTO members(chat_id,user_id,first_name,username,active,invited_by,verified) VALUES(%s,%s,%s,%s,1,%s,%s) ON DUPLICATE KEY UPDATE first_name=VALUES(first_name),username=VALUES(username),active=1,invited_by=VALUES(invited_by),verified=VALUES(verified),joined_at=CURRENT_TIMESTAMP',(m.chat.id,u.id,u.first_name,u.username,inviter,not cfg['verify_enabled']))
    await log(c,m.chat.id,u.id,'join')
    if cfg['verify_enabled']:
