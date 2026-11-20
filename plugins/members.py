@@ -89,6 +89,7 @@ def register(app):
   u=m.left_chat_member
   if u:
    await execute('UPDATE members SET active=0 WHERE chat_id=%s AND user_id=%s',(m.chat.id,u.id))
+   await execute("UPDATE referral_pending SET status='cancelled' WHERE chat_id=%s AND referred_id=%s AND status='pending'",(m.chat.id,u.id))
    await log(c,m.chat.id,u.id,'leave')
  @app.on_message(filters.command('referral') & filters.group)
  async def referral(c,m):
