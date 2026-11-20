@@ -123,7 +123,7 @@ def register(app):
             except Exception:
                 logger.exception("Raid alert failed chat=%s",chat)
 
-    @app.on_callback_query(filters.regex(r"^sec:toggle:-?\\d+:(duplicate_enabled|newcomer_links_enabled|raid_enabled)$"))
+    @app.on_callback_query(filters.regex(r"^sec:toggle:-?\d+:(duplicate_enabled|newcomer_links_enabled|raid_enabled)$"))
     async def callback(client,query):
         if not query.from_user or not query.message or query.message.chat.type!=enums.ChatType.PRIVATE:
             return await query.answer("Use the private dashboard.",show_alert=True)
