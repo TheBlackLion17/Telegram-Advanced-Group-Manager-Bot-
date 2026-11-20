@@ -14,35 +14,9 @@ MIN_WITHDRAW = 100
 RATE = 1
 
 async def credit(chat_id, user_id):
-    """Credit once when verified, active, and attributed; transactional and idempotent."""
-    import database
-    async with database.pool.acquire() as conn:
-        await conn.begin()
-        try:
-            async with conn.cursor() as cur:
-                await cur.execute(
-                    "SELECT invited_by,active,verified FROM members WHERE chat_id=%s AND user_id=%s FOR UPDATE",
-                    (chat_id,user_id))
-                member=await cur.fetchone()
-                if not member or not member[0] or member[0]==user_id or not member[1] or not member[2]:
-                    await conn.rollback()
-                    return False
-                inviter=member[0]
-                await cur.execute(
-                    "INSERT IGNORE INTO referral_credits(chat_id,referred_id,referrer_id,amount) VALUES(%s,%s,%s,1)",
-                    (chat_id,user_id,inviter))
-                if cur.rowcount!=1:
-                    await conn.rollback()
-                    return False
-                await cur.execute(
-                    "INSERT INTO referral_wallets(chat_id,user_id,earned,available) VALUES(%s,%s,1,1) "
-                    "ON DUPLICATE KEY UPDATE earned=earned+1,available=available+1",
-                    (chat_id,inviter))
-            await conn.commit()
-            return True
-        except Exception:
-            await conn.rollback()
-            raise
+    """New verified referrals enter a 24-hour hold before crediting."""
+    from plugins.referral_growth import hold
+    return await hold(chat_id,user_id)
 
 async def attributed_join(chat_id, user, inviter):
     """Save the first legitimate attribution; never replace an existing inviter."""
