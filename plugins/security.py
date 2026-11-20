@@ -42,6 +42,8 @@ def register(app):
     async def security(client, message):
         if not await admin(client, message):
             return
+        if len((message.text or "").split()) != 1:
+            return
         cfg = await settings(message.chat.id)
         await message.reply_text(
             "🛡 Advanced Security\nProtections are opt-in.\n"
