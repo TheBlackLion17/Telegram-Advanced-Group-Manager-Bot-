@@ -68,7 +68,7 @@ def register(app):
         if len(args)!=2:
             return await message.reply_text("Usage: /setmaingroup https://t.me/Movies_Hub_OG")
         url=args[1].strip().rstrip("/")
-        match=re.fullmatch(r"https://(?:t\\.me|telegram\\.me)/([A-Za-z][A-Za-z0-9_]{4,31})",url,re.I)
+        match=re.fullmatch(r"https://(?:t\.me|telegram\.me)/([A-Za-z][A-Za-z0-9_]{4,31})",url,re.I)
         if not match:
             return await message.reply_text("Send a public Telegram group URL, for example: /setmaingroup https://t.me/Movies_Hub_OG")
         username="@"+match.group(1)
@@ -91,8 +91,8 @@ def register(app):
                 "ON DUPLICATE KEY UPDATE chat_id=VALUES(chat_id),title=VALUES(title),join_url=VALUES(join_url)",
                 (chat_id,title,url))
             await message.reply_text(
-                f"✅ Default referral group saved: {title}\\n"
-                f"Group ID: {chat_id}\\nSend /start to open your referral menu.")
+                f"✅ Default referral group saved: {title}\n"
+                f"Group ID: {chat_id}\nSend /start to open your referral menu.")
         except Exception:
             logger.exception("Unable to configure main referral group from private chat")
             await message.reply_text("Unable to verify the group. Confirm the group URL and bot permissions, then try again.")
