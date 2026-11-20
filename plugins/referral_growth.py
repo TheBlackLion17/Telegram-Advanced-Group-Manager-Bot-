@@ -95,12 +95,12 @@ async def growth_report(chat_id):
     d=await one("SELECT COUNT(*) n,COALESCE(SUM(amount),0) total FROM referral_withdrawals WHERE chat_id=%s AND status='pending'",(chat_id,))
     j=await one("SELECT COUNT(*) n FROM events WHERE chat_id=%s AND event_type='join' AND created_at>=UTC_TIMESTAMP()-INTERVAL 1 DAY",(chat_id,))
     a=await one("SELECT COUNT(*) n FROM member_activity WHERE chat_id=%s AND last_seen>=UTC_TIMESTAMP()-INTERVAL 7 DAY",(chat_id,))
-    return (f"📊 Referral & Growth Dashboard\\n\\n"
-            f"Credited referrals: {r['n']}\\n24h reward holds: {p['n']}\\n"
-            f"Total earned: ₹{w['earned']}\\nAvailable liability: ₹{w['available']}\\n"
-            f"Reserved for payouts: ₹{w['reserved']}\\nMarked paid: ₹{w['paid']}\\n"
-            f"Pending payout requests: {d['n']} (₹{d['total']})\\n"
-            f"Observed joins (24h): {j['n']}\\nActive message senders (7d): {a['n']}\\n"
+    return (f"📊 Referral & Growth Dashboard\n\n"
+            f"Credited referrals: {r['n']}\n24h reward holds: {p['n']}\n"
+            f"Total earned: ₹{w['earned']}\nAvailable liability: ₹{w['available']}\n"
+            f"Reserved for payouts: ₹{w['reserved']}\nMarked paid: ₹{w['paid']}\n"
+            f"Pending payout requests: {d['n']} (₹{d['total']})\n"
+            f"Observed joins (24h): {j['n']}\nActive message senders (7d): {a['n']}\n"
             "Activity counts reflect observed bot events only.")
 
 async def period_leaders(chat_id, period):
@@ -110,8 +110,8 @@ async def period_leaders(chat_id, period):
         "SELECT referrer_id,COUNT(*) n FROM referral_credits "
         f"WHERE chat_id=%s AND created_at>=UTC_TIMESTAMP()-INTERVAL {interval} "
         "GROUP BY referrer_id ORDER BY n DESC,referrer_id LIMIT 10",(chat_id,))
-    return f"🏆 {period.title()} credited referral leaderboard\\n"+(
-        "\\n".join(f"{i}. {r['referrer_id']} — {r['n']} referrals" for i,r in enumerate(rows,1))
+    return f"🏆 {period.title()} credited referral leaderboard\n"+(
+        "\n".join(f"{i}. {r['referrer_id']} — {r['n']} referrals" for i,r in enumerate(rows,1))
         if rows else "No credited referrals in this period.")
 
 async def loop(app):
@@ -131,8 +131,8 @@ async def loop(app):
                 try:
                     await app.send_message(
                         OWNER_ID,
-                        f"💸 Withdrawal request #{r['id']}\\nGroup: {r['chat_id']}\\n"
-                        f"User: {r['user_id']}\\nAmount: ₹{r['amount']}\\n"
+                        f"💸 Withdrawal request #{r['id']}\nGroup: {r['chat_id']}\n"
+                        f"User: {r['user_id']}\nAmount: ₹{r['amount']}\n"
                         "Pay externally first, then mark paid or reject.",
                         reply_markup=InlineKeyboardMarkup([
                             [InlineKeyboardButton("Review payment",callback_data=f"grow:payment:{r['id']}")]]))
@@ -175,10 +175,10 @@ def register(app):
         history=await all(
             "SELECT id,amount,status,created_at FROM referral_withdrawals "
             "WHERE chat_id=%s AND user_id=%s ORDER BY id DESC LIMIT 5",(chat,user))
-        lines="\\n".join(f"#{r['id']} ₹{r['amount']} — {r['status']}" for r in history) or "No withdrawals"
+        lines="\n".join(f"#{r['id']} ₹{r['amount']} — {r['status']}" for r in history) or "No withdrawals"
         await message.reply_text(
-            wallet_text(await wallet(chat,user))+f"\\nPending 24h referrals: {pending['n']}\\n"
-            f"Recent withdrawals:\\n{lines}")
+            wallet_text(await wallet(chat,user))+f"\nPending 24h referrals: {pending['n']}\n"
+            f"Recent withdrawals:\n{lines}")
 
     @app.on_message(filters.command("refleaders") & filters.group)
     async def leaders(client,message):
@@ -206,7 +206,7 @@ def register(app):
             (message.chat.id,enabled))
         await message.reply_text("Weekly group reminder "+("enabled." if enabled else "disabled."))
 
-    @app.on_callback_query(filters.regex(r"^grow:payment:\\d+$"))
+    @app.on_callback_query(filters.regex(r"^grow:payment:\d+$"))
     async def payment_info(client,query):
         if not query.from_user or query.from_user.id!=OWNER_ID:
             return await query.answer("Owner only.",show_alert=True)
@@ -216,8 +216,8 @@ def register(app):
             (request_id,))
         if not row:return await query.answer("Request not found.",show_alert=True)
         await query.message.reply_text(
-            f"💸 Request #{request_id}\\nGroup: {row['chat_id']}\\nUser: {row['user_id']}\\n"
-            f"Amount: ₹{row['amount']}\\nStatus: {row['status']}\\n\\n"
+            f"💸 Request #{request_id}\nGroup: {row['chat_id']}\nUser: {row['user_id']}\n"
+            f"Amount: ₹{row['amount']}\nStatus: {row['status']}\n\n"
             "For security, mark paid only after transferring money externally. "
             "Use /payapprove ID or /payreject ID in the corresponding group.")
         await query.answer()
