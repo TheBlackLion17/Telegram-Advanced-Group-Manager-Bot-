@@ -2,13 +2,13 @@ import asyncio,logging
 from pyrogram import Client
 import database
 from config import API_ID,API_HASH,BOT_TOKEN
-from plugins import core,moderation,members,engagement,dashboard,member_insights,welcome_editor,member_management,security,referral_wallet,main_referral
+from plugins import core,moderation,members,engagement,dashboard,member_insights,welcome_editor,member_management,security,referral_wallet,main_referral,referral_growth
 logging.basicConfig(level=logging.INFO)
 app=Client('group_manager',api_id=API_ID,api_hash=API_HASH,bot_token=BOT_TOKEN,workers=8)
 async def main():
  app.loop=asyncio.get_running_loop()
  app.dispatcher.loop=app.loop
- for mod in (core,moderation,members,engagement,dashboard,member_insights,welcome_editor,member_management,security,referral_wallet,main_referral):mod.register(app)
+ for mod in (core,moderation,members,engagement,dashboard,member_insights,welcome_editor,member_management,security,referral_wallet,main_referral,referral_growth):mod.register(app)
  await asyncio.sleep(0)
  logging.info('Registered handler groups: %s',len(app.dispatcher.groups))
  await database.init()
@@ -18,8 +18,9 @@ async def main():
   logging.info('ACTIVE HANDLER GROUPS: %s',len(app.dispatcher.groups))
   if not app.dispatcher.groups:raise RuntimeError('No Pyrogram handlers registered')
   task=asyncio.create_task(engagement.scheduler(app))
+  growth_task=asyncio.create_task(referral_growth.loop(app))
   print('Group Manager running')
   try:await asyncio.Event().wait()
-  finally:task.cancel();await asyncio.gather(task,return_exceptions=True);await app.stop()
+  finally:task.cancel();growth_task.cancel();await asyncio.gather(task,growth_task,return_exceptions=True);await app.stop()
  finally:await database.close()
 if __name__=='__main__':asyncio.run(main())
