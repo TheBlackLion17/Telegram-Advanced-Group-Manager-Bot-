@@ -69,7 +69,7 @@ async def group_menu(client, chat_id, user_id):
         [InlineKeyboardButton("🔗 Referrals", callback_data=f"gm:refs:{chat_id}")],
         [InlineKeyboardButton("👋 Welcome Editor", callback_data=f"wm:panel:{chat_id}")],
         [InlineKeyboardButton("👥 Member Management", callback_data=f"mm:overview:{chat_id}")],
-        [InlineKeyboardButton("🔒 Advanced Security", callback_data=f"sec:toggle:{chat_id}:duplicate_enabled")],
+        [InlineKeyboardButton("🔒 Advanced Security", callback_data=f"sec:panel:{chat_id}")],
         [InlineKeyboardButton("⬅️ My Groups", callback_data="gm:groups")],
     ])
 
