@@ -2,13 +2,13 @@ import asyncio,logging
 from pyrogram import Client
 import database
 from config import API_ID,API_HASH,BOT_TOKEN
-from plugins import core,moderation,members,engagement,dashboard,member_insights,welcome_editor,member_management,security
+from plugins import core,moderation,members,engagement,dashboard,member_insights,welcome_editor,member_management,security,referral_wallet
 logging.basicConfig(level=logging.INFO)
 app=Client('group_manager',api_id=API_ID,api_hash=API_HASH,bot_token=BOT_TOKEN,workers=8)
 async def main():
  app.loop=asyncio.get_running_loop()
  app.dispatcher.loop=app.loop
- for mod in (core,moderation,members,engagement,dashboard,member_insights,welcome_editor,member_management,security):mod.register(app)
+ for mod in (core,moderation,members,engagement,dashboard,member_insights,welcome_editor,member_management,security,referral_wallet):mod.register(app)
  await asyncio.sleep(0)
  logging.info('Registered handler groups: %s',len(app.dispatcher.groups))
  await database.init()
