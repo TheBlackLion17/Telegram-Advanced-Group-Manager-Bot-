@@ -123,16 +123,18 @@ def register(app):
             except Exception:
                 logger.exception("Raid alert failed chat=%s",chat)
 
-    @app.on_callback_query(filters.regex(r"^sec:toggle:-?\d+:(duplicate_enabled|newcomer_links_enabled|raid_enabled)$"))
+    @app.on_callback_query(filters.regex(r"^sec:(?:panel:-?\d+|toggle:-?\d+:(?:duplicate_enabled|newcomer_links_enabled|raid_enabled))$"))
     async def callback(client,query):
         if not query.from_user or not query.message or query.message.chat.type!=enums.ChatType.PRIVATE:
             return await query.answer("Use the private dashboard.",show_alert=True)
-        _,_,raw,field=query.data.split(":")
-        chat=int(raw)
+        parts=query.data.split(":")
+        chat=int(parts[2])
         if not await live_group_admin(client,chat,query.from_user.id):
             return await query.answer("Administrator access required.",show_alert=True)
         await settings(chat)
-        await execute(f"UPDATE security_settings SET {field}=NOT {field} WHERE chat_id=%s",(chat,))
+        if parts[1]=="toggle":
+            field=parts[3]
+            await execute(f"UPDATE security_settings SET {field}=NOT {field} WHERE chat_id=%s",(chat,))
         cfg=await settings(chat)
         await query.message.edit_text("🛡 Advanced Security\nEnable protections for this group:",reply_markup=panel(chat,cfg))
         await query.answer()
