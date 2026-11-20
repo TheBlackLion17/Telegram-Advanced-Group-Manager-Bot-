@@ -221,3 +221,16 @@ def register(app):
             "For security, mark paid only after transferring money externally. "
             "Use /payapprove ID or /payreject ID in the corresponding group.")
         await query.answer()
+
+    @app.on_callback_query(filters.regex(r"^grow:dashboard:-?\d+$"))
+    async def dashboard_panel(client,query):
+        if not query.from_user or not query.message:
+            return
+        chat_id=int(query.data.rsplit(":",1)[1])
+        if not await live_group_admin(client,chat_id,query.from_user.id):
+            return await query.answer("Live group administrator permission required.",show_alert=True)
+        await query.message.edit_text(
+            await growth_report(chat_id),
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("⬅️ Group",callback_data=f"gm:group:{chat_id}")]]))
+        await query.answer()
