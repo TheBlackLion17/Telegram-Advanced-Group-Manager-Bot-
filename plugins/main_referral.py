@@ -56,7 +56,7 @@ def register(app):
             (message.chat.id,message.chat.title,join_url))
         await message.reply_text("✅ Default referral group saved. New private /start messages will use this group.")
 
-    @app.on_message(filters.command("clearm aingroup".replace(" ","")) & filters.private)
+    @app.on_message(filters.command("clearmaingroup") & filters.private)
     async def clear_main(client,message):
         if message.from_user and message.from_user.id==OWNER_ID:
             await execute("DELETE FROM referral_main_group WHERE slot=1")
