@@ -2,6 +2,9 @@ import aiomysql
 from config import DB
 pool=None
 SCHEMA=[
+"""CREATE TABLE IF NOT EXISTS referral_pending (chat_id BIGINT NOT NULL,referred_id BIGINT NOT NULL,referrer_id BIGINT NOT NULL,status VARCHAR(16) NOT NULL DEFAULT 'pending',created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,release_at DATETIME NOT NULL,PRIMARY KEY(chat_id,referred_id),INDEX idx_pending_release(status,release_at),INDEX idx_pending_referrer(chat_id,referrer_id,status)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4""",
+"""CREATE TABLE IF NOT EXISTS referral_alerts (withdrawal_id BIGINT PRIMARY KEY,notified_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4""",
+"""CREATE TABLE IF NOT EXISTS retention_settings (chat_id BIGINT PRIMARY KEY,enabled BOOLEAN NOT NULL DEFAULT FALSE,last_sent_at DATETIME NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4""",
 """CREATE TABLE IF NOT EXISTS referral_main_group (slot TINYINT PRIMARY KEY,chat_id BIGINT NOT NULL,title VARCHAR(255) NOT NULL,join_url VARCHAR(512) NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4""",
 """CREATE TABLE IF NOT EXISTS referral_wallets (chat_id BIGINT NOT NULL,user_id BIGINT NOT NULL,earned BIGINT NOT NULL DEFAULT 0,available BIGINT NOT NULL DEFAULT 0,reserved BIGINT NOT NULL DEFAULT 0,paid BIGINT NOT NULL DEFAULT 0,PRIMARY KEY(chat_id,user_id)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4""",
 """CREATE TABLE IF NOT EXISTS referral_credits (chat_id BIGINT NOT NULL,referred_id BIGINT NOT NULL,referrer_id BIGINT NOT NULL,amount INT NOT NULL DEFAULT 1,created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,PRIMARY KEY(chat_id,referred_id),INDEX idx_referrer(chat_id,referrer_id)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4""",
